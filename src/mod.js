@@ -1,6 +1,3 @@
-//
-//              excuse me, im just trying to learn router services :)
-//
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -21,6 +18,27 @@ class RestrictFlea {
             action: async (url, info, sessionId, output) => {
                 //logger.log(`Received request for profile info. Session ID: ${sessionId}`);
                 this.checkSessionRestriction(sessionId, logger, container);
+                return output;
+            }
+        }], "aki");
+
+        RouterService.registerStaticRouter("CheckForNewProfile", [{
+            url: "/launcher/profile/register",
+            action: async (url, info, sessionId, output) => {
+                const restrictedProfiles = this.loadRestrictedProfiles();
+                const logger = container.resolve("WinstonLogger");
+        
+                if (!restrictedProfiles[sessionId]) {
+                    restrictedProfiles[sessionId] = {
+                        restrictedUntil: Date.now() + this.CFG.durationInDays * 24 * 60 * 60 * 1000
+                    };
+                    this.saveRestrictedProfiles(restrictedProfiles);
+        
+                    logger.log(`[Restrict Flea] Freshly created profile was restricted. Profile ID: ${sessionId}`, "cyan");
+                } else {
+                    logger.log(`[Restrict Flea] Profile already restricted. Profile ID: ${sessionId}`, "yellow");
+                }
+
                 return output;
             }
         }], "aki");
