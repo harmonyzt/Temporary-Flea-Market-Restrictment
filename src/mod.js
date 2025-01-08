@@ -7,6 +7,7 @@ class RestrictFlea {
     constructor() {
         this.CFG = require("../config/config.json");
         this.restrictedProfilesFile = path.resolve(__dirname, "restrictedProfiles.json");
+
     }
 
     preSptLoad(container) {
@@ -27,14 +28,14 @@ class RestrictFlea {
             action: async (url, info, sessionId, output) => {
                 const restrictedProfiles = this.loadRestrictedProfiles();
                 const logger = container.resolve("WinstonLogger");
-        
+
                 if (!restrictedProfiles[sessionId]) {
                     restrictedProfiles[sessionId] = {
                         restrictedUntil: Date.now() + this.CFG.durationInDays * 24 * 60 * 60 * 1000
                     };
                     this.saveRestrictedProfiles(restrictedProfiles);
-        
-                    logger.log(`[Restrict Flea] Freshly created profile was restricted. Profile ID: ${sessionId}`, "cyan");
+
+                    logger.log(`[Restrict Flea] Freshly created profile was flea market restricted. Profile ID: ${sessionId}`, "cyan");
                 } else {
                     logger.log(`[Restrict Flea] Profile already restricted. Profile ID: ${sessionId}`, "yellow");
                 }
@@ -45,16 +46,20 @@ class RestrictFlea {
     }
 
     postDBLoad(container) {
+        const db = container.resolve("DatabaseServer");
+        const tables = db.getTables();
+        const globals = tables.globals.config;
         const { CFG: config } = this;
 
         const logger = container.resolve("WinstonLogger");
 
         if (!config.enabled) {
-            logger.log("[Restrict Flea] Flea temporary restrictions are disabled in the config", "yellow");
+            logger.log("[Restrict Flea] Flea temporary restrictions are disabled in the config but flea market level cap was set.", "yellow");
+            globals.RagFair.minUserLevel = config.restrictedLevel;
             return;
+        } else {
+            this.checkAndRestrictProfiles(logger, config);
         }
-
-        this.checkAndRestrictProfiles(logger, config);
     }
 
     checkSessionRestriction(sessionId, logger, container) {
