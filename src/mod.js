@@ -7,7 +7,6 @@ class RestrictFlea {
     constructor() {
         this.CFG = require("../config/config.json");
         this.restrictedProfilesFile = path.resolve(__dirname, "restrictedProfiles.json");
-
     }
 
     preSptLoad(container) {
@@ -27,7 +26,6 @@ class RestrictFlea {
             url: "/launcher/profile/register",
             action: async (url, info, sessionId, output) => {
                 const restrictedProfiles = this.loadRestrictedProfiles();
-                const logger = container.resolve("WinstonLogger");
 
                 if (!restrictedProfiles[sessionId]) {
                     restrictedProfiles[sessionId] = {
@@ -36,6 +34,26 @@ class RestrictFlea {
                     this.saveRestrictedProfiles(restrictedProfiles);
 
                     logger.log(`[Restrict Flea] Freshly created profile was flea market restricted. Profile ID: ${sessionId}`, "cyan");
+                } else {
+                    logger.log(`[Restrict Flea] Profile already restricted. Profile ID: ${sessionId}`, "yellow");
+                }
+
+                return output;
+            }
+        }], "aki");
+
+        RouterService.registerStaticRouter("CheckForProfileWipe", [{
+            url: "/launcher/profile/change/wipe",
+            action: async (url, info, sessionId, output) => {
+                const restrictedProfiles = this.loadRestrictedProfiles();
+
+                if (!restrictedProfiles[sessionId]) {
+                    restrictedProfiles[sessionId] = {
+                        restrictedUntil: Date.now() + this.CFG.durationInDays * 24 * 60 * 60 * 1000
+                    };
+                    this.saveRestrictedProfiles(restrictedProfiles);
+
+                    logger.log(`[Restrict Flea] Profile was wiped and flea market restricted. Profile ID: ${sessionId}`, "cyan");
                 } else {
                     logger.log(`[Restrict Flea] Profile already restricted. Profile ID: ${sessionId}`, "yellow");
                 }
