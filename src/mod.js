@@ -13,11 +13,16 @@ class RestrictFlea {
         const RouterService = container.resolve("StaticRouterModService");
         const logger = container.resolve("WinstonLogger");
 
+        let ranOnlyOnce = 0
+
         RouterService.registerStaticRouter("CheckForSession", [{
             url: "/launcher/profile/info",
             action: async (url, info, sessionId, output) => {
                 //logger.log(`Received request for profile info. Session ID: ${sessionId}`);
-                this.checkSessionRestriction(sessionId, logger, container);
+                if(ranOnlyOnce == 0){
+                    this.checkSessionRestriction(sessionId, logger, container);
+                    ranOnlyOnce = 1;
+                }
                 return output;
             }
         }], "aki");
@@ -33,11 +38,24 @@ class RestrictFlea {
                     };
                     this.saveRestrictedProfiles(restrictedProfiles);
 
+                    ranOnlyOnce = 1;
+
                     logger.log(`[Restrict Flea] Freshly created profile was flea market restricted. Profile ID: ${sessionId}`, "cyan");
                 } else {
                     logger.log(`[Restrict Flea] Profile already restricted. Profile ID: ${sessionId}`, "yellow");
+
+                    ranOnlyOnce = 1;
                 }
 
+                return output;
+            }
+        }], "aki");
+
+        RouterService.registerStaticRouter("CheckForProfileLogOut", [{
+            url: "/launcher/server/connect",
+            action: async (url, info, sessionId, output) => {
+                ranOnlyOnce = 0;
+                
                 return output;
             }
         }], "aki");
